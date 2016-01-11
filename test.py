@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from flask import Flask
+
 from ZfCrawler import ZfCrawler
 
 app = Flask(__name__)
-
+app.config['SECRET_KEY'] = 'secret_key'
 
 zc = ZfCrawler()
 

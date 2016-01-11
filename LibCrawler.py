@@ -6,6 +6,7 @@ from PIL import Image
 import pytesseract
 from StringIO import StringIO
 import json
+import gevent
 
 from config import Config
 from NUPTCrawlerBase import NUPTCrawlerBase
@@ -157,9 +158,24 @@ class LibCrawler(NUPTCrawlerBase):
         api.logger.info('[+] ID: %s got lib search record.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
-    def get_data(self):
+    def get_data(self, login_data):
         api.logger.info('[+] start fetching ID:%s data.' % login_data['number'])
-        pass
+
+        self.login(login_data)
+
+        threads = [
+            gevent.spawn(self._get_info),
+            gevent.spawn(self._get_current_list),
+            gevent.spawn(self._get_comment),
+            gevent.spawn(self._get_search),
+            gevent.spawn(self._get_payment),
+            gevent.spawn(self._get_payment_detail),
+            gevent.spawn(self._get_recommend),
+            gevent.spawn(self._get_book_shelf),
+            gevent.spawn(self._get_reserve)
+        ]
+
+        gevent.joinall(threads)
 
 if __name__ == '__main__':
     lc = LibCrawler(debug=True)

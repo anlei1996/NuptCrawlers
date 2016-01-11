@@ -21,5 +21,8 @@ class NUPTCrawlerBase(object):
     def find_in_cache(self, cache_conn):
         pass
 
+    def find_in_db(self, db_conn):
+        pass
+
     def insert_to_db(self, db_conn):
         pass

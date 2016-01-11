@@ -10,7 +10,7 @@ import gevent
 
 from config import Config
 from NUPTCrawlerBase import NUPTCrawlerBase
-from lib.util import save_to_qiniu
+from lib.util import api, save_to_qiniu
 from lib.http import req
 from lib.PageParser import ZfParser
 
@@ -83,12 +83,14 @@ class ZfCrawler(NUPTCrawlerBase):
         if resp is None:
             return Config.SERVER_MSG['SERVER_ERROR']
         if resp.url.startswith(self.ZF_URLS['LOGIN_SUCCESS']):
+            api.logger.info('[+] ID: %s login zf successfully.' % (login_data['txtUserName']))
             msg = Config.SERVER_MSG['LOGIN_SUCCESS']
         elif self.ZF_URLS['WRONG_CAPTCHA_FINGER'] in resp.text:
             msg = Config.SERVER_MSG['WRONG_CAPTCHA']
         elif self.ZF_URLS['INVALID_CAPTCHA_FINGER'] in resp.text:
             msg = Config.SERVER_MSG['INVALID_USERNAME']
         elif self.ZF_URLS['WRONG_PASS_FINGER'] in resp.text:
+            api.logger.warning('[-] ID: %s login zf failed.' % (login_data['txtUserName']))
             msg = Config.SERVER_MSG['WRONG_PASSWORD']
         else:
             msg = Config.SERVER_MSG['SERVER_ERROR']
@@ -101,9 +103,11 @@ class ZfCrawler(NUPTCrawlerBase):
         url = ZfParser.get_zf_urls(self.ZF_URLS['INFO'], student_id)
         resp = req(url, 'get', referer=self.ZF_URLS['LOGIN'], cookies=cookies)
         if resp is None:
+            api.logger.warning('[-] got %s personal info failed.' % student_id)
             return Config.SERVER_MSG['SERVER_ERROR']
         content = resp.text
         res = ZfParser.parse_zf_info(content)
+        api.logger.info('[+] got %s personal info successfully.' % student_id)
         return json.dumps(res, ensure_ascii=False)
 
     def _get_score(self, cookies, student_id):
@@ -120,9 +124,11 @@ class ZfCrawler(NUPTCrawlerBase):
         }
         resp = req(url, 'post', data=score_data, referer=self.ZF_URLS['LOGIN'], cookies=cookies, host=self.host)
         if resp is None or resp.text is None:
+            api.logger.warning('[+] got %s cert score failed.' % student_id)
             return "[]"
         content = resp.text
         res = ZfParser.parse_zf_score(content)
+        api.logger.info('[+] got %s score successfully.' % student_id)
         return json.dumps(res, ensure_ascii=False)
 
     def _get_course(self, cookies, student_id):
@@ -138,9 +144,11 @@ class ZfCrawler(NUPTCrawlerBase):
         url = ZfParser.get_zf_urls(self.ZF_URLS['CERT_SCORE'], student_id)
         resp = req(url, 'get', cookies=cookies, referer=self.ZF_URLS['LOGIN'])
         if resp is None or resp.text is None:
+            api.logger.warning('[+] got %s cert score failed.' % student_id)
             return "[]"
         content = resp.text
         res = ZfParser.parse_zf_cert_score(content)
+        api.logger.info('[+] got %s cert score successfully.' % student_id)
         return json.dumps(res, ensure_ascii=False)
 
     def _get_thesis(self, cookies, student_id):
@@ -160,6 +168,7 @@ class ZfCrawler(NUPTCrawlerBase):
         i = Image.open(StringIO(resp.content))
         if self.debug:
             i.save(student_id+'.jpg')
+        api.logger.info('[+] got %s image successfully.' % student_id)
         url = save_to_qiniu(i)
         i.close()
         return url
@@ -168,6 +177,7 @@ class ZfCrawler(NUPTCrawlerBase):
         """
         并发爬取所有信息，实时返回info信息，需要把省份证后六位传给EhomeCrawler尝试登录。
         """
+        api.logger.info('[*] start fetching data from zf for %s' % student_id)
         threads = []
         info_thread = gevent.spawn(self._get_personal_info, cookies, student_id)
         threads.extend([
@@ -189,5 +199,5 @@ if __name__ == '__main__':
     sid, _ = zc.login(login_data, cookies)
     j = zc._get_personal_info(cookies, sid)
     import pprint
-    pprint(j, indent=4)
+    pprint.pprint(j, indent=4)
     # print zc._get_cert_score(cookies, sid)

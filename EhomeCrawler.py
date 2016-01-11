@@ -8,6 +8,7 @@ from requests import Session
 
 from config import Config
 from NUPTCrawlerBase import NUPTCrawlerBase
+from lib.util import api
 from lib.http import req
 from lib.PageParser import EhomeParser
 
@@ -27,9 +28,8 @@ class EhomeCrawler(NUPTCrawlerBase):
         resp = req(self.URLS['COOKIE'], 'get', host=self.host)
         if resp is None:
             return Config.SERVER_MSG['SERVER_ERROR']
-        # 校园系统bug 无需这一步
-        # if resp.url != self.URLS['LOGIN_SUCCESS']:
-        #     return Config.SERVER_MSG['WRONG_PASSWORD']
+        api.logger.info('[+] ID: %s got ehome cookies.' % login_data['number'])
+
         self.cookies = resp.cookies
         payload = {
             'email': login_data['student_id'],
@@ -37,8 +37,12 @@ class EhomeCrawler(NUPTCrawlerBase):
         }
 
         resp = req(self.URLS['LOGIN'], 'post', data=payload, cookies=self.cookies)
+        # 校园系统bug 无需这一步
+        # if resp.url != self.URLS['LOGIN_SUCCESS']:
+        #     return Config.SERVER_MSG['WRONG_PASSWORD']
         if resp is None:
             return Config.SERVER_MSG['SERVER_ERROR']
+        api.logger.info('[+] ID: %s login ehome.' % login_data['student_id'])
         self.iplanet = resp.history[0].cookies
         self.session.cookies = self.iplanet
 
@@ -48,6 +52,7 @@ class EhomeCrawler(NUPTCrawlerBase):
             return Config.SERVER_MSG['SERVER_ERROR']
         content = resp.text
         info = EhomeParser.parse_ehome_info(content)
+        api.logger.info('[+] got cardno: %s.' % info['usercode'])
         return json.dumps(info, ensure_ascii=False)
 
     def _get_rec(self, start_date, usercode):
@@ -69,9 +74,12 @@ class EhomeCrawler(NUPTCrawlerBase):
         resp = self.session.post(self.URLS['REC'], params=params, data=fanka_data)
         res = resp.json()
         total_count = int(res['totalCount'])
+        api.logger.info('[+] got total_count %s of %s' % (total_count, usercode))
         if total_count > 0:
             fanka_data['param_1'] = total_count
             resp = self.session.post(self.URLS['REC'], params=params, data=fanka_data)
+            if resp is None:
+                return "[]"
             res = resp.json()
             rec = res['results']
         else:
@@ -79,6 +87,7 @@ class EhomeCrawler(NUPTCrawlerBase):
         return json.dumps(rec, ensure_ascii=False)
 
     def get_data(self, start_date='2012-09-01', usercode=''):
+        api.logger.info('[+] start fetching ehome data for %s' % usercode)
         pass
 
 if __name__ == '__main__':

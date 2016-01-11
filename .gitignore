@@ -3,4 +3,5 @@
 *.png
 *.jpg
 *.gif
+*.log
 config.py

@@ -5,6 +5,7 @@ import requests
 import grequests
 from copy import deepcopy
 from config import Config
+from lib.util import api
 
 
 def req(url, method, **kwargs):
@@ -20,5 +21,6 @@ def req(url, method, **kwargs):
         kwargs.update({"timeout": (10, 10), "verify": False})
         resp = getattr(requests, method)(url, **kwargs)
     except Exception as e:
+        api.logger.error("[-] url: %s, error: %s" % (url, str(e)))
         return None
     return resp

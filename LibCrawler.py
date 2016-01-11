@@ -9,6 +9,7 @@ import json
 
 from config import Config
 from NUPTCrawlerBase import NUPTCrawlerBase
+from lib.util import api
 from lib.http import req
 from lib.PageParser import LibParser
 
@@ -43,14 +44,20 @@ class LibCrawler(NUPTCrawlerBase):
             'returnUrl': ''
         }
         resp = req(self.URLS['LOGIN'], 'post', data=login_data, cookies=self.cookies)
+        if resp is None:
+            return Config.SERVER_MSG['SERVER_ERROR']
         if resp.url == self.URLS['LOGIN_SUCCESS']:
+            api.logger.info('[+] ID: %s login lib successfully.' % login_data['number'])
             return Config.SERVER_MSG['LOGIN_SUCCESS']
         elif self.URLS['WRONG_PASS_FINGER'].encode('utf8') in resp.content:
+            api.logger.warning('[+] ID: %s login lib failed.' % login_data['number'])
             return Config.SERVER_MSG['WRONG_PASSWORD']
         elif self.URLS['WRONG_CAPTCHA_FINGER'] in resp.content:
             # 验证码错误，重试
+            api.logger.critical('[+] ID: %s crack captcha failed.' % login_data['number'])
             return Config.SERVER_MSG['WRONG_CAPTCHA']
         else:
+            api.logger.error('[-] unknown error.')
             return Config.SERVER_MSG['SERVER_ERROR']
 
     def login(self, login_data=None):
@@ -62,6 +69,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_info(content)
+        api.logger.info('[+] ID: %s got lib info.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_current_list(self):
@@ -70,6 +78,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_curlst(content)
+        api.logger.info('[+] ID: %s got lib current list.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_history(self):
@@ -82,6 +91,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_common(content, tr_start=1, td_start=1)
+        api.logger.info('[+] ID: %s got lib history.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_recommend(self):
@@ -90,6 +100,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_common(content, tr_start=1)
+        api.logger.info('[+] ID: %s got lib recommend.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_reserve(self):
@@ -98,6 +109,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_common(content, tr_start=1)
+        api.logger.info('[+] ID: %s got lib reserve.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_book_shelf(self):
@@ -106,6 +118,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_shelf(content)
+        api.logger.info('[+] ID: %s got lib book shelf.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_payment(self):
@@ -114,6 +127,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_common(content, tr_start=1, tr_end=-1)
+        api.logger.info('[+] ID: %s got lib payment.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_payment_detail(self):
@@ -122,6 +136,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_common(content, tr_start=1, tr_end=-1)
+        api.logger.info('[+] ID: %s got lib payment details.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_comment(self):
@@ -130,6 +145,7 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_comment(content)
+        api.logger.info('[+] ID: %s got lib comment.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def _get_search(self):
@@ -138,9 +154,11 @@ class LibCrawler(NUPTCrawlerBase):
             return "[]"
         content = resp.content
         res = LibParser.parse_lib_search(content)
+        api.logger.info('[+] ID: %s got lib search record.' % login_data['number'])
         return json.dumps(res, ensure_ascii=False)
 
     def get_data(self):
+        api.logger.info('[+] start fetching ID:%s data.' % login_data['number'])
         pass
 
 if __name__ == '__main__':
